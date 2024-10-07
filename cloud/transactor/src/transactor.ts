@@ -28,6 +28,7 @@ import {
 // import { registerStringLoaders } from '@hcengineering/server-pipeline'
 import { decodeToken, generateToken, type Token } from '@hcengineering/server-token'
 import { DurableObject } from 'cloudflare:workers'
+
 import { createaPipeline } from './pipeline'
 
 // Approach usefull only for separate build, after model-all bundle phase is executed.
@@ -39,6 +40,8 @@ export const PREFERRED_SAVE_SIZE = 500
 export const PREFERRED_SAVE_INTERVAL = 30 * 1000
 
 export class Transactor extends DurableObject<Env> {
+  sql: SqlStorage
+
   private readonly workspace: string
 
   private sessionManager!: SessionManager
@@ -60,6 +63,10 @@ export class Transactor extends DurableObject<Env> {
 
     this.workspace = this.ctx.id.toString()
     this.measureCtx = new MeasureMetricsContext('transactor-' + this.workspace, {})
+
+    this.sql = ctx.storage.sql
+
+    this.sql.exec(query)
 
     this.pipelineFactory = async (ctx, ws, upgrade, broadcast, branding) =>
       await createaPipeline(this.measureCtx, env.HYPERDRIVE.connectionString, model, branding, ws, broadcast)
