@@ -13,7 +13,7 @@
   
   "DESKTOP_UPDATES_CHANNEL": "front",
   
-  "FILES_URL": "https://dl.hc.engineering/blob/:workspace/:blobId",
+  "FILES_URL": "https://dl.hc.engineering/blob/:workspace/:blobId/:filename",
   
   "GITHUB_APP": "huly-github-staging",
   
@@ -48,5 +48,5 @@
   "UPLOAD_CONFIG": "",
   
   "UPLOAD_URL": "https://dl.hc.engineering/upload/form-data/:workspace",
-  "TRANSACTOR_OVERRIDE": "wss://cloud-transactor.andrey-47f.workers.dev"
+  "TRANSACTOR_OVERRIDE": "ws://localhost:3335"
 }

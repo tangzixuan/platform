@@ -79,6 +79,8 @@
     "Active": "Aktiv",
     "Finished": "Beendet",
     "StartWithRecording": "Mit Aufnahme starten",
-    "Language": "Sprache"
+    "Language": "Sprache",
+    "WithAudio": "Systemaudio einschließen",
+    "ShareWithAudioTooltip": "Teile deinen Bildschirm mit Systemaudio. Starte die Bildschirmfreigabe neu, um Änderungen anzuwenden."
   }
 }

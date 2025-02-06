@@ -26,6 +26,7 @@ import {
   type Class,
   type Data,
   type Doc,
+  DOMAIN_SEQUENCE,
   DOMAIN_TX,
   generateId,
   makeDocCollabId,
@@ -33,7 +34,8 @@ import {
   type Ref,
   SortingOrder,
   toIdMap,
-  TxOperations
+  TxOperations,
+  type WorkspaceDataId
 } from '@hcengineering/core'
 import {
   createDefaultSpace,
@@ -115,7 +117,7 @@ async function createProductChangeControlTemplate (tx: TxOperations): Promise<vo
       impactedDocuments: []
     }
 
-    const seq = await tx.findOne(documents.class.Sequence, {
+    const seq = await tx.findOne(core.class.Sequence, {
       _id: documents.sequence.Templates
     })
 
@@ -161,13 +163,13 @@ async function createProductChangeControlTemplate (tx: TxOperations): Promise<vo
 }
 
 async function createTemplateSequence (tx: TxOperations): Promise<void> {
-  const templateSeq = await tx.findOne(documents.class.Sequence, {
+  const templateSeq = await tx.findOne(core.class.Sequence, {
     _id: documents.sequence.Templates
   })
 
   if (templateSeq === undefined) {
     await tx.createDoc(
-      documents.class.Sequence,
+      core.class.Sequence,
       documents.space.Documents,
       {
         attachedTo: documents.mixin.DocumentTemplate,
@@ -299,7 +301,8 @@ async function migrateDocSections (client: MigrationClient): Promise<void> {
     // Migrate sections headers + content
     try {
       const collabId = makeDocCollabId(document, 'content')
-      const ydoc = await loadCollabYdoc(ctx, storage, client.workspaceId, collabId)
+      const dataId = client.wsIds.dataId ?? (client.wsIds.uuid as unknown as WorkspaceDataId)
+      const ydoc = await loadCollabYdoc(ctx, storage, dataId, collabId)
       if (ydoc === undefined) {
         // no content, ignore
         continue
@@ -345,7 +348,7 @@ async function migrateDocSections (client: MigrationClient): Promise<void> {
         }
       })
 
-      await saveCollabYdoc(ctx, storage, client.workspaceId, collabId, ydoc)
+      await saveCollabYdoc(ctx, storage, dataId, collabId, ydoc)
     } catch (err) {
       ctx.error('error collaborative document content migration', { error: err, document: document.title })
     }
@@ -417,6 +420,17 @@ export const documentsOperation: MigrateOperation = {
       {
         state: 'migrateProjectMetaRank',
         func: migrateProjectMetaRank
+      },
+      {
+        state: 'migrateSequnce',
+        func: async (client: MigrationClient) => {
+          await client.update(
+            DOMAIN_DOCUMENTS,
+            { _class: 'documents:class:Sequence' as Ref<Class<Doc>> },
+            { _class: core.class.Sequence }
+          )
+          await client.move(DOMAIN_DOCUMENTS, { _class: core.class.Sequence }, DOMAIN_SEQUENCE)
+        }
       }
     ])
   },

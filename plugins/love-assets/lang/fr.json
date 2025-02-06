@@ -81,6 +81,8 @@
     "Finished": "Terminé",
     "StartWithRecording": "Démarrer avec l'enregistrement",
     "Language": "Langue",
-    "Kick": "Expulser"
+    "Kick": "Expulser",
+    "WithAudio": "Inclure l'audio du système",
+    "ShareWithAudioTooltip": "Partagez votre écran avec l'audio du système. Redémarrez le partage d’écran pour appliquer les modifications."
   }
 }
