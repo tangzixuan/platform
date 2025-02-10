@@ -14,17 +14,13 @@
 //
 
 import { Analytics } from '@hcengineering/analytics'
-import core, {
-  type AttachedDoc,
+import {
   type Attribute,
   type Class,
-  ClassifierKind,
   type Client,
   type Doc,
   type DocManager,
   type DocumentQuery,
-  DOMAIN_CONFIGURATION,
-  DOMAIN_MODEL,
   getCurrentAccount,
   type Ref,
   type RelatedDocument,
@@ -32,6 +28,7 @@ import core, {
   toIdMap,
   type TxOperations
 } from '@hcengineering/core'
+import { includesAny } from '@hcengineering/contact'
 import { type Resources, type Status, translate } from '@hcengineering/platform'
 import { getClient, MessageBox, type ObjectSearchResult } from '@hcengineering/presentation'
 import { type Component, type Issue, type Milestone, type Project } from '@hcengineering/tracker'
@@ -159,7 +156,6 @@ import ProjectPresenter from './components/projects/ProjectPresenter.svelte'
 import ProjectSpacePresenter from './components/projects/ProjectSpacePresenter.svelte'
 
 import { get } from 'svelte/store'
-
 import { settingId } from '@hcengineering/setting'
 import { getAllStates } from '@hcengineering/task-resources'
 import EstimationValueEditor from './components/issues/timereport/EstimationValueEditor.svelte'
@@ -275,76 +271,20 @@ async function deleteProject (project: Project | undefined): Promise<void> {
         labelProps: { name: project.name },
         message: tracker.string.DeleteProjectConfirm,
         action: async () => {
-          // void client.update(project, { archived: true })
           const client = getClient()
-          const classes = await client.findAll(core.class.Class, {})
-          const h = client.getHierarchy()
-          for (const c of classes) {
-            if (c.kind !== ClassifierKind.CLASS) {
-              continue
-            }
-            const d = h.findDomain(c._id)
-            if (d !== undefined && d !== DOMAIN_MODEL && d !== DOMAIN_CONFIGURATION) {
-              try {
-                while (true) {
-                  const docs = await client.findAll(c._id, { space: project._id }, { limit: 50 })
-                  if (docs.length === 0) {
-                    break
-                  }
-                  const ops = client.apply(undefined, 'delete-project')
-                  for (const object of docs) {
-                    if (client.getHierarchy().isDerived(object._class, core.class.AttachedDoc)) {
-                      const adoc = object as AttachedDoc
-                      await ops
-                        .removeCollection(
-                          object._class,
-                          object.space,
-                          adoc._id,
-                          adoc.attachedTo,
-                          adoc.attachedToClass,
-                          adoc.collection
-                        )
-                        .catch((err) => {
-                          console.error(err)
-                        })
-                    } else {
-                      await ops.removeDoc(object._class, object.space, object._id).catch((err) => {
-                        console.error(err)
-                      })
-                    }
-                  }
-                  await ops.commit()
-                }
-              } catch (err: any) {
-                console.error(err)
-                Analytics.handleError(err)
-              }
-            }
-          }
           await client.remove(project)
         }
       })
     } else {
       const anyIssue = await client.findOne(tracker.class.Issue, { space: project._id })
-      if (anyIssue !== undefined) {
-        showPopup(MessageBox, {
-          label: tracker.string.ArchiveProjectName,
-          labelProps: { name: project.name },
-          message: tracker.string.ProjectHasIssues,
-          action: async () => {
-            await client.update(project, { archived: true })
-          }
-        })
-      } else {
-        showPopup(MessageBox, {
-          label: tracker.string.ArchiveProjectName,
-          labelProps: { name: project.name },
-          message: tracker.string.ArchiveProjectConfirm,
-          action: async () => {
-            await client.update(project, { archived: true })
-          }
-        })
-      }
+      showPopup(MessageBox, {
+        label: tracker.string.ArchiveProjectName,
+        labelProps: { name: project.name },
+        message: anyIssue !== undefined ? tracker.string.ProjectHasIssues : tracker.string.ArchiveProjectConfirm,
+        action: async () => {
+          await client.update(project, { archived: true })
+        }
+      })
     }
   }
 }
@@ -524,7 +464,7 @@ export default async (): Promise<Resources> => ({
     ) => await getAllStates(query, onUpdate, queryId, attr, false),
     GetVisibleFilters: getVisibleFilters,
     IssueChatTitleProvider: getIssueChatTitle,
-    IsProjectJoined: async (project: Project) => project.members.includes(getCurrentAccount()._id),
+    IsProjectJoined: async (project: Project) => includesAny(project.members, getCurrentAccount().socialIds),
     GetIssueStatusCategories: getIssueStatusCategories,
     SetComponentStore: setStore,
     ComponentFilterFunction: filterComponents

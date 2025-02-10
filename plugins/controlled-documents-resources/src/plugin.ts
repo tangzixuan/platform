@@ -46,7 +46,7 @@ export default mergeIds(documentsId, documents, {
   },
   string: {
     ID: '' as IntlString,
-    DocumentApprovals: '' as IntlString,
+    ValidationWorkflow: '' as IntlString,
     Cancel: '' as IntlString,
     NewDocumentDialogClose: '' as IntlString,
     NewDocumentCloseNote: '' as IntlString,
@@ -226,8 +226,12 @@ export default mergeIds(documentsId, documents, {
   function: {
     CanCreateTemplate: '' as Resource<ViewActionAvailabilityFunction<DocumentSpace>>,
     CanCreateDocument: '' as Resource<ViewActionAvailabilityFunction<DocumentSpace>>,
+    CanCreateFolder: '' as Resource<ViewActionAvailabilityFunction<DocumentSpace>>,
     CanCreateChildTemplate: '' as Resource<ViewActionAvailabilityFunction<Document>>,
     CanCreateChildDocument: '' as Resource<ViewActionAvailabilityFunction<Document>>,
+    CanCreateChildFolder: '' as Resource<ViewActionAvailabilityFunction<Document>>,
+    CanRenameFolder: '' as Resource<ViewActionAvailabilityFunction<Document>>,
+    CanDeleteFolder: '' as Resource<ViewActionAvailabilityFunction<Document>>,
     CheckIsDocumentCreationDisabled: '' as Resource<() => Promise<boolean>>,
     CheckAreTemplatesDisabled: '' as Resource<() => Promise<boolean>>,
     CheckAreDomainsDisabled: '' as Resource<() => Promise<boolean>>,
@@ -238,6 +242,10 @@ export default mergeIds(documentsId, documents, {
     GetDocumentMetaLinkFragment: '' as Resource<(doc: Doc, props: Record<string, any>) => Promise<Location>>,
     CanDeleteDocument: '' as Resource<(doc?: Doc | Doc[]) => Promise<boolean>>,
     CanArchiveDocument: '' as Resource<(doc?: Doc | Doc[]) => Promise<boolean>>,
+    CanMakeDocumentObsolete: '' as Resource<(doc?: Doc | Doc[]) => Promise<boolean>>,
+    CanOpenDocument: '' as Resource<(doc?: Doc | Doc[]) => Promise<boolean>>,
+    CanPrintDocument: '' as Resource<(doc?: Doc | Doc[]) => Promise<boolean>>,
+    CanTransferDocument: '' as Resource<(doc?: Doc | Doc[]) => Promise<boolean>>,
     ControlledDocumentTitleProvider: '' as Resource<(client: Client, ref: Ref<Doc>, doc?: Doc) => Promise<string>>
   }
 })
