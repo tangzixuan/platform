@@ -1,4 +1,4 @@
-import { Account, MarkupBlobRef, Ref } from '@hcengineering/core'
+import { MarkupBlobRef, PersonId, Ref, WorkspaceDataId } from '@hcengineering/core'
 import document, { Document, getFirstRank, Teamspace } from '@hcengineering/document'
 import { makeRank } from '@hcengineering/rank'
 import { parseMessageMarkdown } from '@hcengineering/text'
@@ -37,12 +37,13 @@ async function pdfToMarkdown (
   name: string | undefined
 ): Promise<string | undefined> {
   if (config.DataLabApiKey !== '') {
+    const dataId = workspaceClient.workspace as any as WorkspaceDataId
     try {
-      const stat = await workspaceClient.storage.stat(workspaceClient.ctx, { name: workspaceClient.workspace }, fileId)
+      const stat = await workspaceClient.storage.stat(workspaceClient.ctx, dataId, fileId)
       if (stat?.contentType !== 'application/pdf') {
         return
       }
-      const file = await workspaceClient.storage.get(workspaceClient.ctx, { name: workspaceClient.workspace }, fileId)
+      const file = await workspaceClient.storage.get(workspaceClient.ctx, dataId, fileId)
       const buffer = await stream2buffer(file)
 
       const url = 'https://www.datalab.to/api/v1/marker'
@@ -64,7 +65,7 @@ async function pdfToMarkdown (
       })
 
       const data = await response.json()
-      console.log('data', data)
+
       if (data.request_check_url !== undefined) {
         for (let attempt = 0; attempt < 10; attempt++) {
           const resp = await fetch(data.request_check_url, { headers })
@@ -83,7 +84,7 @@ async function pdfToMarkdown (
 
 async function saveFile (
   workspaceClient: WorkspaceClient,
-  user: string | undefined,
+  user: PersonId | undefined,
   args: { fileId: string, folder: string | undefined, parent: string | undefined, name: string }
 ): Promise<string> {
   console.log('Save file', args)
@@ -95,13 +96,8 @@ async function saveFile (
 
   const client = await workspaceClient.opClient
   const fileId = uuid()
-  await workspaceClient.storage.put(
-    workspaceClient.ctx,
-    { name: workspaceClient.workspace },
-    fileId,
-    converted,
-    'application/json'
-  )
+  const dataId = workspaceClient.workspace as any as WorkspaceDataId
+  await workspaceClient.storage.put(workspaceClient.ctx, dataId, fileId, converted, 'application/json')
 
   const teamspaces = await client.findAll(document.class.Teamspace, {})
   const parent = await client.findOne(document.class.Document, { _id: args.parent as Ref<Document> })
@@ -136,13 +132,14 @@ function getTeamspace (
 
 async function getFoldersForDocuments (
   workspaceClient: WorkspaceClient,
-  user: string | undefined,
+  user: PersonId | undefined,
   args: Record<string, any>
 ): Promise<string> {
   const client = await workspaceClient.opClient
+  // TODO: need a set of user PersonIds here
   const spaces = await client.findAll(
     document.class.Teamspace,
-    user !== undefined ? { members: user as Ref<Account>, archived: false } : { archived: false }
+    user !== undefined ? { members: user, archived: false } : { archived: false }
   )
   let res = 'Folders:\n'
   for (const space of spaces) {
@@ -167,7 +164,7 @@ type PredefinedToolFunction<T extends object | string> = Omit<
 T extends string ? RunnableFunctionWithoutParse : RunnableFunctionWithParse<any>,
 'function'
 >
-type ToolFunc = (workspaceClient: WorkspaceClient, user: string | undefined, args: any) => Promise<string> | string
+type ToolFunc = (workspaceClient: WorkspaceClient, user: PersonId | undefined, args: any) => Promise<string> | string
 
 const tools: [PredefinedTool<any>, ToolFunc][] = []
 
@@ -227,7 +224,10 @@ registerTool<object>(
   saveFile
 )
 
-export function getTools (workspaceClient: WorkspaceClient, user: string | undefined): RunnableTools<BaseFunctionsArgs> {
+export function getTools (
+  workspaceClient: WorkspaceClient,
+  user: PersonId | undefined
+): RunnableTools<BaseFunctionsArgs> {
   const result: (RunnableToolFunctionWithoutParse | RunnableToolFunctionWithParse<any>)[] = []
   for (const tool of tools) {
     const res: RunnableToolFunctionWithoutParse | RunnableToolFunctionWithParse<any> = {

@@ -10,6 +10,7 @@
     "analyze": "rm -rf ./dist && cross-env NODE_ENV=production webpack --profile --json > stats.json",
     "show": "webpack-bundle-analyzer stats.json dist",
     "dev-server": "cross-env USE_CACHE=false CLIENT_TYPE=dev-server webpack serve",
+    "dev-server-test": "cross-env USE_CACHE=false CLIENT_TYPE=dev-server-test webpack serve",
     "dev-worker": "cross-env USE_CACHE=false CLIENT_TYPE=dev-worker webpack serve",
     "dev-worker-local": "cross-env USE_CACHE=false CLIENT_TYPE=dev-worker-local webpack serve",
     "dev-server-cache": "cross-env USE_CACHE=true CLIENT_TYPE=dev-server webpack serve",
@@ -45,8 +46,8 @@
     "compression-webpack-plugin": "^10.0.0",
     "html-webpack-plugin": "^5.5.0",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
-    "update-browserslist-db": "^1.1.0",
-    "browserslist": "^4.23.3",
+    "update-browserslist-db": "^1.1.2",
+    "browserslist": "^4.24.4",
     "esbuild": "^0.24.2",
     "esbuild-loader": "^4.0.3",
     "typescript": "^5.3.3",
@@ -243,7 +244,10 @@
     "@hcengineering/survey": "^0.6.0",
     "@hcengineering/survey-assets": "^0.6.0",
     "@hcengineering/survey-resources": "^0.6.0",
-    "@sentry/svelte": "~7.101.0",
+    "@hcengineering/card": "^0.6.0",
+    "@hcengineering/card-assets": "^0.6.0",
+    "@hcengineering/card-resources": "^0.6.0",
+    "@sentry/svelte": "^8.52.1",
     "posthog-js": "~1.122.0"
   }
 }

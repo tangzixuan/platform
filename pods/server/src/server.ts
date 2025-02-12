@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-import { type BrandingMap, type MeasureContext, type Tx } from '@hcengineering/core'
+import { type Account, type BrandingMap, type MeasureContext, type Tx } from '@hcengineering/core'
 import { buildStorageFromConfig } from '@hcengineering/server-storage'
 
 import { ClientSession, startSessionManager } from '@hcengineering/server'
@@ -33,16 +33,40 @@ import {
   registerDestroyFactory,
   registerServerPlugins,
   registerStringLoaders,
-  registerTxAdapterFactory
+  registerTxAdapterFactory,
+  sharedPipelineContextVars
 } from '@hcengineering/server-pipeline'
+import { uncompress } from 'snappy'
 
-import { createMongoAdapter, createMongoDestroyAdapter, createMongoTxAdapter } from '@hcengineering/mongo'
-import { createPostgreeDestroyAdapter, createPostgresAdapter, createPostgresTxAdapter } from '@hcengineering/postgres'
+import {
+  createMongoAdapter,
+  createMongoDestroyAdapter,
+  createMongoTxAdapter,
+  shutdownMongo
+} from '@hcengineering/mongo'
+import {
+  createPostgreeDestroyAdapter,
+  createPostgresAdapter,
+  createPostgresTxAdapter,
+  registerGreenDecoder,
+  registerGreenUrl,
+  setDBExtraOptions,
+  shutdownPostgres
+} from '@hcengineering/postgres'
 import { readFileSync } from 'node:fs'
 const model = JSON.parse(readFileSync(process.env.MODEL_JSON ?? 'model.json').toString()) as Tx[]
 
 registerStringLoaders()
 
+// Register close on process exit.
+process.on('exit', () => {
+  shutdownPostgres(sharedPipelineContextVars).catch((err) => {
+    console.error(err)
+  })
+  shutdownMongo(sharedPipelineContextVars).catch((err) => {
+    console.error(err)
+  })
+})
 /**
  * @public
  */
@@ -76,6 +100,15 @@ export function start (
   registerAdapterFactory('postgresql', createPostgresAdapter, true)
   registerDestroyFactory('postgresql', createPostgreeDestroyAdapter, true)
 
+  const usePrepare = (process.env.DB_PREPARE ?? 'true') === 'true'
+
+  registerGreenDecoder('snappy', uncompress)
+  registerGreenUrl(process.env.GREEN_URL)
+
+  setDBExtraOptions({
+    prepare: usePrepare // We override defaults
+  })
+
   registerServerPlugins()
 
   const externalStorage = buildStorageFromConfig(opt.storageConfig)
@@ -87,8 +120,8 @@ export function start (
     { ...opt, externalStorage, adapterSecurity: dbUrl.startsWith('postgresql') },
     {}
   )
-  const sessionFactory = (token: Token, workspace: Workspace): Session => {
-    return new ClientSession(token, workspace, token.extra?.mode === 'backup')
+  const sessionFactory = (token: Token, workspace: Workspace, account: Account): Session => {
+    return new ClientSession(token, workspace, account, token.extra?.mode === 'backup')
   }
 
   const { shutdown: onClose, sessionManager } = startSessionManager(metrics, {

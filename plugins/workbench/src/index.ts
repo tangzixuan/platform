@@ -13,7 +13,7 @@
 // limitations under the License.
 //
 
-import type { AccountRole, Class, Doc, Mixin, Obj, Ref, Space, Tx } from '@hcengineering/core'
+import type { AccountRole, Class, Doc, Mixin, Obj, PersonId, Ref, Space, Tx } from '@hcengineering/core'
 import { DocNotifyContext, InboxNotification } from '@hcengineering/notification'
 import type { Asset, IntlString, Metadata, Plugin, Resource } from '@hcengineering/platform'
 import { plugin } from '@hcengineering/platform'
@@ -116,6 +116,7 @@ export interface TxSidebarEvent<T extends Record<string, any> = Record<string, a
 }
 
 export interface WorkbenchTab extends Preference {
+  attachedTo: PersonId
   location: string
   isPinned: boolean
   name?: string
@@ -255,7 +256,8 @@ export default plugin(workbenchId, {
     OpenInSidebar: '' as IntlString,
     OpenInSidebarNewTab: '' as IntlString,
     ConfigureWidgets: '' as IntlString,
-    WorkspaceIsArchived: '' as IntlString
+    WorkspaceIsArchived: '' as IntlString,
+    WorkspaceIsMigrating: '' as IntlString
   },
   icon: {
     Search: '' as Asset

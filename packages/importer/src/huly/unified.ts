@@ -12,10 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { type Attachment } from '@hcengineering/attachment'
-import contact, { Employee, type Person, type PersonAccount } from '@hcengineering/contact'
-import { type Class, type Doc, generateId, type Ref, type Space, type TxOperations } from '@hcengineering/core'
+import contact, { Employee, type Person } from '@hcengineering/contact'
+import {
+  type Class,
+  type Doc,
+  generateId,
+  PersonId,
+  type Ref,
+  type Space,
+  type TxOperations
+} from '@hcengineering/core'
 import document, { type Document } from '@hcengineering/document'
 import { MarkupMarkType, type MarkupNode, MarkupNodeType, traverseNode, traverseNodeMarks } from '@hcengineering/text'
 import tracker, { type Issue, Project } from '@hcengineering/tracker'
@@ -50,13 +58,13 @@ import documents, {
   DocumentMeta
 } from '@hcengineering/controlled-documents'
 
-interface UnifiedComment {
+export interface UnifiedComment {
   author: string
   text: string
   attachments?: string[]
 }
 
-interface UnifiedIssueHeader {
+export interface UnifiedIssueHeader {
   class: 'tracker:class:Issue'
   title: string
   status: string
@@ -67,7 +75,7 @@ interface UnifiedIssueHeader {
   comments?: UnifiedComment[]
 }
 
-interface UnifiedSpaceSettings {
+export interface UnifiedSpaceSettings {
   class: 'tracker:class:Project' | 'document:class:Teamspace' | 'documents:class:OrgSpace'
   title: string
   private?: boolean
@@ -79,7 +87,7 @@ interface UnifiedSpaceSettings {
   emoji?: string
 }
 
-interface UnifiedProjectSettings extends UnifiedSpaceSettings {
+export interface UnifiedProjectSettings extends UnifiedSpaceSettings {
   class: 'tracker:class:Project'
   identifier: string
   id?: 'tracker:project:DefaultProject'
@@ -87,16 +95,16 @@ interface UnifiedProjectSettings extends UnifiedSpaceSettings {
   defaultIssueStatus?: string
 }
 
-interface UnifiedTeamspaceSettings extends UnifiedSpaceSettings {
+export interface UnifiedTeamspaceSettings extends UnifiedSpaceSettings {
   class: 'document:class:Teamspace'
 }
 
-interface UnifiedDocumentHeader {
+export interface UnifiedDocumentHeader {
   class: 'document:class:Document'
   title: string
 }
 
-interface UnifiedWorkspaceSettings {
+export interface UnifiedWorkspaceSettings {
   projectTypes?: Array<{
     name: string
     taskTypes?: Array<{
@@ -110,13 +118,13 @@ interface UnifiedWorkspaceSettings {
   }>
 }
 
-interface UnifiedChangeControlHeader {
+export interface UnifiedChangeControlHeader {
   description?: string
   reason?: string
   impact?: string
 }
 
-interface UnifiedControlledDocumentHeader {
+export interface UnifiedControlledDocumentHeader {
   class: 'documents:class:ControlledDocument'
   title: string
   template: string
@@ -129,7 +137,7 @@ interface UnifiedControlledDocumentHeader {
   changeControl?: UnifiedChangeControlHeader
 }
 
-interface UnifiedDocumentTemplateHeader {
+export interface UnifiedDocumentTemplateHeader {
   class: 'documents:mixin:DocumentTemplate'
   title: string
   category: string
@@ -143,7 +151,7 @@ interface UnifiedDocumentTemplateHeader {
   changeControl?: UnifiedChangeControlHeader
 }
 
-interface UnifiedOrgSpaceSettings extends UnifiedSpaceSettings {
+export interface UnifiedOrgSpaceSettings extends UnifiedSpaceSettings {
   class: 'documents:class:OrgSpace'
   qualified?: string
   manager?: string
@@ -328,8 +336,8 @@ export class UnifiedFormatImporter {
   private readonly ctrlDocTemplateIdByPath = new Map<string, Ref<ControlledDocument>>()
 
   private personsByName = new Map<string, Ref<Person>>()
-  private accountsByEmail = new Map<string, Ref<PersonAccount>>()
-  private employeesByName = new Map<string, Ref<Employee>>()
+  // private accountsByEmail = new Map<string, Ref<PersonAccount>>()
+  // private employeesByName = new Map<string, Ref<Employee>>()
 
   constructor (
     private readonly client: TxOperations,
@@ -587,20 +595,24 @@ export class UnifiedFormatImporter {
     return person
   }
 
-  private findAccountByEmail (email: string): Ref<PersonAccount> {
-    const account = this.accountsByEmail.get(email)
-    if (account === undefined) {
-      throw new Error(`Account not found: ${email}`)
-    }
-    return account
+  private findAccountByEmail (email: string): PersonId {
+    // TODO: FIXME
+    throw new Error('Not implemented')
+    // const account = this.accountsByEmail.get(email)
+    // if (account === undefined) {
+    //   throw new Error(`Account not found: ${email}`)
+    // }
+    // return account
   }
 
   private findEmployeeByName (name: string): Ref<Employee> {
-    const employee = this.employeesByName.get(name)
-    if (employee === undefined) {
-      throw new Error(`Employee not found: ${name}`)
-    }
-    return employee
+    // TODO: FIXME
+    throw new Error('Not implemented')
+    // const employee = this.employeesByName.get(name)
+    // if (employee === undefined) {
+    //   throw new Error(`Employee not found: ${name}`)
+    // }
+    // return employee
   }
 
   private async processDocumentsRecursively (
@@ -939,25 +951,29 @@ export class UnifiedFormatImporter {
   }
 
   private async cacheAccountsByEmails (): Promise<void> {
-    const accounts = await this.client.findAll(contact.class.PersonAccount, {})
-    this.accountsByEmail = accounts.reduce((map, account) => {
-      map.set(account.email, account._id)
-      return map
-    }, new Map())
+    // TODO: FIXME
+    throw new Error('Not implemented')
+    // const accounts = await this.client.findAll(contact.class.PersonAccount, {})
+    // this.accountsByEmail = accounts.reduce((map, account) => {
+    //   map.set(account.email, account._id)
+    //   return map
+    // }, new Map())
   }
 
   private async cacheEmployeesByName (): Promise<void> {
-    this.employeesByName = (await this.client.findAll(contact.mixin.Employee, {}))
-      .map((employee) => {
-        return {
-          _id: employee._id,
-          name: employee.name.split(',').reverse().join(' ')
-        }
-      })
-      .reduce((refByName, employee) => {
-        refByName.set(employee.name, employee._id)
-        return refByName
-      }, new Map())
+    // TODO: FIXME
+    throw new Error('Not implemented')
+    // this.employeesByName = (await this.client.findAll(contact.mixin.Employee, {}))
+    //   .map((employee) => {
+    //     return {
+    //       _id: employee._id,
+    //       name: employee.name.split(',').reverse().join(' ')
+    //     }
+    //   })
+    //   .reduce((refByName, employee) => {
+    //     refByName.set(employee.name, employee._id)
+    //     return refByName
+    //   }, new Map())
   }
 
   private async collectFileMetadata (folderPath: string): Promise<void> {

@@ -46,7 +46,8 @@ import core, {
   type TxCUD,
   type TxResult,
   type TypeAny,
-  type WithLookup
+  type WithLookup,
+  type WorkspaceDataId
 } from '@hcengineering/core'
 import { getMetadata, getResource } from '@hcengineering/platform'
 import { LiveQuery as LQ } from '@hcengineering/query'
@@ -67,12 +68,13 @@ let rawLiveQuery: LQ
 let client: TxOperations & Client
 let pipeline: PresentationPipeline
 
-const txListeners: Array<(...tx: Tx[]) => void> = []
+export type TxListener = (tx: Tx[]) => void
+const txListeners: TxListener[] = []
 
 /**
  * @public
  */
-export function addTxListener (l: (tx: Tx) => void): void {
+export function addTxListener (l: TxListener): void {
   txListeners.push(l)
 }
 
@@ -83,7 +85,7 @@ export function getRawLiveQuery (): LQ {
 /**
  * @public
  */
-export function removeTxListener (l: (tx: Tx) => void): void {
+export function removeTxListener (l: TxListener): void {
   const pos = txListeners.findIndex((it) => it === l)
   if (pos !== -1) {
     txListeners.splice(pos, 1)
@@ -100,7 +102,7 @@ class UIClient extends TxOperations implements Client {
     client: Client,
     private readonly liveQuery: Client
   ) {
-    super(client, getCurrentAccount()._id)
+    super(client, getCurrentAccount().primarySocialId)
   }
 
   protected pendingTxes = new Set<Ref<Tx>>()
@@ -141,7 +143,7 @@ class UIClient extends TxOperations implements Client {
       await rawLiveQuery.tx(...tx)
 
       txListeners.forEach((it) => {
-        it(...tx)
+        it(tx)
       })
     } catch (err: any) {
       Analytics.handleError(err)
@@ -254,14 +256,14 @@ export function getClient (): TxOperations & Client {
   return clientProxy
 }
 
-export type OnClientListener = (client: Client, account: Account) => void
+export type OnClientListener = (client: Client, account: Account) => void | Promise<void>
 const onClientListeners: OnClientListener[] = []
 
 export function onClient (l: OnClientListener): void {
   onClientListeners.push(l)
   if (client !== undefined) {
     setTimeout(() => {
-      l(client, getCurrentAccount())
+      void l(client, getCurrentAccount())
     })
   }
 }
@@ -321,7 +323,7 @@ export async function setClient (_client: Client): Promise<void> {
   }
   const acc = getCurrentAccount()
   onClientListeners.forEach((l) => {
-    l(_client, acc)
+    void l(_client, acc)
   })
 }
 /**
@@ -552,6 +554,23 @@ export async function getBlobURL (blob: Blob): Promise<string> {
 /**
  * @public
  */
+export function copyTextToClipboardOldBrowser (text: string): void {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.classList.add('hulyClipboardArea')
+  document.body.appendChild(textarea)
+  textarea.select()
+  try {
+    document.execCommand('copy')
+  } catch (err) {
+    console.error(err)
+  }
+  document.body.removeChild(textarea)
+}
+
+/**
+ * @public
+ */
 export async function copyTextToClipboard (text: string | Promise<string>): Promise<void> {
   try {
     // Safari specific behavior
@@ -562,7 +581,9 @@ export async function copyTextToClipboard (text: string | Promise<string>): Prom
     await navigator.clipboard.write([clipboardItem])
   } catch {
     // Fallback to default clipboard API implementation
-    await navigator.clipboard.writeText(text instanceof Promise ? await text : text)
+    if (navigator.clipboard != null && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(text instanceof Promise ? await text : text)
+    } else copyTextToClipboardOldBrowser(text instanceof Promise ? await text : text)
   }
 }
 
@@ -725,7 +746,8 @@ export function decodeTokenPayload (token: string): any {
 }
 
 export function isAdminUser (): boolean {
-  return decodeTokenPayload(getMetadata(plugin.metadata.Token) ?? '').admin === 'true'
+  const decodedToken = decodeTokenPayload(getMetadata(plugin.metadata.Token) ?? '')
+  return decodedToken.extra?.admin === 'true'
 }
 
 export function isSpace (space: Doc): space is Space {
@@ -736,15 +758,17 @@ export function isSpaceClass (_class: Ref<Class<Doc>>): boolean {
   return client.getHierarchy().isDerived(_class, core.class.Space)
 }
 
-export function setPresentationCookie (token: string, workspaceId: string): void {
+export function setPresentationCookie (token: string, workspaceUuid: WorkspaceDataId): void {
   function setToken (path: string): void {
-    document.cookie =
+    const res =
       encodeURIComponent(plugin.metadata.Token.replaceAll(':', '-')) +
       '=' +
       encodeURIComponent(token) +
       `; path=${path}`
+    console.log('setting cookie', res)
+    document.cookie = res
   }
-  setToken('/files/' + workspaceId)
+  setToken('/files/' + workspaceUuid)
 }
 
 export const upgradeDownloadProgress = writable(-1)
@@ -763,7 +787,7 @@ export async function loadServerConfig (url: string): Promise<any> {
 
   do {
     try {
-      res = await fetch(url)
+      res = await fetch(url, { keepalive: true })
       break
     } catch (e: any) {
       retries--
